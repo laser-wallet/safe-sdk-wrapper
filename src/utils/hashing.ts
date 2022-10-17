@@ -1,24 +1,21 @@
 import { SafeSingleton } from "../typechain";
 
 export type Address = string;
-export type TxOpts = {
+export type HashingOpts = {
     to: Address;
     value: bigint;
     data: string;
-
     safeTxGas: bigint;
     baseGas: bigint;
     gasPrice: bigint;
     gasToken: Address;
     refundReceiver: Address;
-    signatures: string;
 };
 
 // Returns the transaction hash to be signed.
-export async function getTxHash(wallet: SafeSingleton, opts: TxOpts): Promise<string> {
+export async function getTxHash(wallet: SafeSingleton, opts: HashingOpts): Promise<string> {
+    const { to, value, data, safeTxGas, baseGas, gasPrice, gasToken, refundReceiver } = opts;
     // We don't accept delegatecalls.
-
-    const { to, value, data, safeTxGas, baseGas, gasPrice, gasToken, refundReceiver, signatures } = opts;
     const operation = 0;
     const nonce = await wallet.nonce();
 
