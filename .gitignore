@@ -1,0 +1,7 @@
+.DS_Store
+.env
+node_modules
+dist
+.npmignore
+package-lock.json
+src/typechain/
