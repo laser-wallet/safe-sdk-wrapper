@@ -4,7 +4,7 @@
   "description": "Interacts with safe contracts.",
   "main": "index.js",
   "scripts": {
-    "prettier:write": "prettier --write src/", 
+    "prettier:write": "prettier --write src/",
     "generate": "typechain --target=ethers-v5 'src/{abis,deployments/mainnet}/*.json' --out-dir src/typechain"
   },
   "repository": {
@@ -21,6 +21,7 @@
     "ethers": "^5.7.1"
   },
   "devDependencies": {
+    "@typechain/ethers-v5": "^10.1.0",
     "prettier": "^2.7.1",
     "typechain": "^8.1.0",
     "typescript": "^4.8.4"
