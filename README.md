@@ -9,7 +9,7 @@
 Super easy to use sdk to interact with a safe contract
 
 
-### Deploy a new safe: 
+### Deploy a new safe: 
 
 ```ts
 import { Factory } from "...";
