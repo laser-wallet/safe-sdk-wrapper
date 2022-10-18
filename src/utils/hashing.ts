@@ -1,13 +1,14 @@
 import { SafeSingleton } from "../typechain";
+import type { BigNumber } from "ethers";
 
 export type Address = string;
 export type HashingOpts = {
     to: Address;
-    value: bigint;
+    value: BigNumber;
     data: string;
-    safeTxGas: bigint;
-    baseGas: bigint;
-    gasPrice: bigint;
+    safeTxGas: BigNumber;
+    baseGas: BigNumber;
+    gasPrice: BigNumber;
     gasToken: Address;
     refundReceiver: Address;
 };
