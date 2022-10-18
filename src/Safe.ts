@@ -36,6 +36,7 @@ export class Safe {
     public signerAddress: Address;
 
     private signer: Wallet;
+
     // Creates a new Wallet class.
     static async create(opts: WalletOpts): Promise<Safe> {
         const { provider, signer, walletAddress } = opts;
