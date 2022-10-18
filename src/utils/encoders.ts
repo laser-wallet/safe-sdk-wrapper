@@ -26,9 +26,9 @@ export function getInitializer(opts: InitOpts): string {
     // - Check that owners are not duplicated.
     // - Check that the payment is in bounds.
     // etc.
-    // if (ownersLength < 3) {
-    //     throw new Error(`There needs to be 3 owners but there are: ${ownersLength}`);
-    // }
+    if (ownersLength < 3) {
+        throw new Error(`There needs to be 3 owners but there are: ${ownersLength}`);
+    }
 
     threshold = threshold ? threshold : 2;
     if (threshold > ownersLength) {

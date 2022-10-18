@@ -1,5 +1,5 @@
 import type { Provider } from "@ethersproject/providers";
-import { BigNumber, providers, Wallet } from "ethers";
+import { BigNumber, providers, Wallet, Signer } from "ethers";
 import { SAFE_SINGLETON, SAFE_FACTORY, SUPPORTED_CHAINS } from "./constants";
 import { Address, encodeFunctionData, getInitializer, InitOpts } from "./utils";
 import { SafeFactory, SafeFactory__factory } from "./typechain";
@@ -7,14 +7,14 @@ import { calculateDeploymentGas } from "./utils/gas";
 
 type FactoryOpts = {
     provider: Provider;
-    signer: Wallet;
+    signer: Wallet | Signer;
 };
 
-// Factory that deploys safe contracts through a relayer.
+// Factory that deploys safe contracts.
 export class Factory {
-    factory: SafeFactory;
+    public factory: SafeFactory;
 
-    // Creates a new factory.
+    // Creates a new Factory class.
     static async create(opts: FactoryOpts): Promise<Factory> {
         const { provider, signer } = opts;
 
@@ -31,15 +31,9 @@ export class Factory {
 
     // Shouldn't be called directly.
     // Create the factory through 'create' for safety checks.
-    protected constructor(public provider: Provider, signer: Wallet) {
+    protected constructor(public provider: Provider, signer: Wallet | Signer) {
         signer = signer.connect(provider);
         this.factory = SafeFactory__factory.connect(SAFE_FACTORY, signer);
-    }
-
-    // Calculates the proxy (safe) address in advance.
-    public async calculateProxyAddress(initOpts: InitOpts): Promise<Address> {
-        const initializer = getInitializer(initOpts);
-        return this._calculateProxyAddress(initOpts.saltNonce, initializer);
     }
 
     // Creates a new a proxy.
@@ -57,6 +51,12 @@ export class Factory {
         } catch (e) {
             throw new Error(`Error deploying the proxy: ${e}`);
         }
+    }
+
+    // Calculates the proxy (safe) address in advance.
+    public async calculateProxyAddress(initOpts: InitOpts): Promise<Address> {
+        const initializer = getInitializer(initOpts);
+        return this._calculateProxyAddress(initOpts.saltNonce, initializer);
     }
 
     private async _calculateProxyAddress(saltNonce: number | BigNumber, initializer: string): Promise<Address> {
