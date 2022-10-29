@@ -1,10 +1,14 @@
 import { ethers, BigNumber, Signer, Wallet, providers } from "ethers";
-import { GAS_PRICE, GAS_TOKEN, SUPPORTED_CHAINS } from "./constants";
+import { GAS_PRICE, GAS_TOKEN, SAFE_FUNCTIONS, SUPPORTED_CHAINS } from "./constants";
 import { SafeSingleton, SafeSingleton__factory } from "./typechain";
+import { Erc20Abi__factory } from "./typechain/factories/Erc20Abi__factory";
 import { Address, encodeFunctionData, getTxHash, sign } from "./utils";
 import { verifyAddOwnerWithThreshold } from "./utils/verifiers";
 
 import type { Provider } from "@ethersproject/providers";
+
+import erc20Abi from "./abis/erc20.abi.json";
+import { sanitizeAddresses } from "./utils/sanitizers";
 
 type SendTxOpts = {
     to: Address;
@@ -132,7 +136,10 @@ export class Safe {
 
         const tx = mockTx;
         tx.to = this.safe.address;
-        tx.data = encodeFunctionData(SafeSingleton__factory.abi, "addOwnerWithThreshold", [newOwner, threshold]);
+        tx.data = encodeFunctionData(SafeSingleton__factory.abi, SAFE_FUNCTIONS.addOwnerWithThreshold, [
+            newOwner,
+            threshold,
+        ]);
         tx.safeTxGas = BigNumber.from(gasOpts.gasLimit);
         tx.refundReceiver = gasOpts.relayer;
         const hash = await this._getInternalHash(tx.data, tx.safeTxGas, tx.refundReceiver);
@@ -157,6 +164,50 @@ export class Safe {
         const tx = mockTx;
         tx.to = to;
         tx.value = value;
+        tx.safeTxGas = BigNumber.from(gasOpts.gasLimit);
+        tx.refundReceiver = gasOpts.relayer;
+        tx.signatures = await sign(this.signer, hash);
+
+        return tx;
+    }
+
+    /// Returns the tx object to send an ERC-20 compatible token.
+    /// @param value Amount of tokens to send.
+    /// @notice This function adds the proper decimals, THE VALUE SHOULD BE WITHOUT DECIMALS.
+    public async transferERC20(
+        tokenAddress: Address,
+        to: Address,
+        value: number,
+        gasOpts: GasOpts
+    ): Promise<SendTxOpts> {
+        [tokenAddress, to] = sanitizeAddresses([tokenAddress, to]);
+        const tokenContract = Erc20Abi__factory.connect(tokenAddress, this.provider);
+
+        let decimals: number;
+        try {
+            decimals = await tokenContract.decimals();
+        } catch (e) {
+            throw new Error(`Could not get the token's decimals for address: ${tokenAddress}: ${e}`);
+        }
+
+        const transferAmount = ethers.utils.parseUnits(value.toString(), decimals);
+
+        const safeBalance = await tokenContract.balanceOf(this.safe.address);
+        if (safeBalance.lt(transferAmount)) throw new Error("Insufficient balance");
+
+        const data = encodeFunctionData(Erc20Abi__factory.abi, "transfer", [to, transferAmount]);
+        const hash = await this._getExternalHash(
+            to,
+            BigNumber.from(0),
+            data,
+            BigNumber.from(gasOpts.gasLimit),
+            gasOpts.relayer
+        );
+
+        const tx = mockTx;
+        tx.to = to;
+        tx.value = BigNumber.from(0);
+        tx.data = data;
         tx.safeTxGas = BigNumber.from(gasOpts.gasLimit);
         tx.refundReceiver = gasOpts.relayer;
         tx.signatures = await sign(this.signer, hash);

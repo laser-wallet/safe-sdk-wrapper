@@ -27,3 +27,14 @@ export const GAS_TOKEN = ethers.constants.AddressZero;
  *
  */
 export const GAS_PRICE = ethers.utils.parseEther("100");
+
+/**
+ *
+ * Supported safe functions by Laser.
+ *
+ */
+export const SAFE_FUNCTIONS = {
+    addOwnerWithThreshold: "addOwnerWithThreshold",
+    removeOwner: "removeOwner",
+    changeThreshold: "changeThreshold",
+};
