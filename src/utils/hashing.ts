@@ -13,7 +13,7 @@ export type HashingOpts = {
     refundReceiver: Address;
 };
 
-// Returns the transaction hash to be signed.
+/// Returns the transaction hash to be signed.
 export async function getTxHash(wallet: SafeSingleton, opts: HashingOpts): Promise<string> {
     const { to, value, data, safeTxGas, baseGas, gasPrice, gasToken, refundReceiver } = opts;
     // We don't accept delegatecalls.

@@ -1,4 +1,4 @@
-import { BigNumber, ethers } from "ethers";
+import { BigNumber, ethers, utils } from "ethers";
 import { SAFE_HANDLER } from "../constants";
 import { SafeSingleton__factory } from "../typechain";
 import { Address } from "./hashing";
@@ -29,6 +29,10 @@ export function getInitializer(opts: InitOpts): string {
     if (ownersLength < 3) {
         throw new Error(`There needs to be 3 owners but there are: ${ownersLength}`);
     }
+
+    owners.forEach((owner: Address) => {
+        if (!utils.isAddress(owner)) throw new Error(`Invalid address: ${owner}`);
+    });
 
     threshold = threshold ? threshold : 2;
     if (threshold > ownersLength) {

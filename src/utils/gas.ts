@@ -1,8 +1,8 @@
 import { Address } from "./hashing";
 import { ethers } from "ethers";
 
-// Calculates the deployment cost in units of gas.
-// It is not 100% accurate and it returns the number with a buffer.
+/// Calculates the deployment cost in units of gas.
+/// It is not 100% accurate and it returns the number with a buffer.
 export function calculateDeploymentGas(owners: Address[]): number {
     const ownersLength = owners.length;
 

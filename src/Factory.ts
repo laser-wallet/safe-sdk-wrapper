@@ -5,19 +5,12 @@ import { Address, encodeFunctionData, getInitializer, InitOpts } from "./utils";
 import { SafeFactory, SafeFactory__factory } from "./typechain";
 import { calculateDeploymentGas } from "./utils/gas";
 
-type FactoryOpts = {
-    provider: Provider;
-    signer: Wallet | Signer;
-};
-
-// Factory that deploys safe contracts.
+/// Factory that deploys safe contracts.
 export class Factory {
     public factory: SafeFactory;
 
-    // Creates a new Factory class.
-    static async create(opts: FactoryOpts): Promise<Factory> {
-        const { provider, signer } = opts;
-
+    /// Creates a new Factory class.
+    static async create(provider: Provider): Promise<Factory> {
         let networkName: string = (await provider.getNetwork()).name;
         networkName = networkName === "homestead" ? "mainnet" : networkName;
 
@@ -25,35 +18,25 @@ export class Factory {
             throw new Error(`Unsupported chain: ${networkName}`);
         }
 
-        const factory = new this(provider, signer);
+        const factory = new this(provider);
         return factory;
     }
 
-    // Shouldn't be called directly.
-    // Create the factory through 'create' for safety checks.
-    protected constructor(public provider: Provider, signer: Wallet | Signer) {
-        signer = signer.connect(provider);
-        this.factory = SafeFactory__factory.connect(SAFE_FACTORY, signer);
+    protected constructor(public provider: Provider) {
+        this.factory = SafeFactory__factory.connect(SAFE_FACTORY, this.provider);
     }
 
-    // Creates a new a proxy.
-    public async createProxy(initOpts: InitOpts): Promise<providers.TransactionResponse> {
-        const initializer = getInitializer(initOpts);
-        const singleton = SAFE_SINGLETON;
-        const saltNonce = initOpts.saltNonce;
-
-        const gasLimit = calculateDeploymentGas(initOpts.owners);
-
-        try {
-            return this.factory.createProxyWithNonce(singleton, initializer, saltNonce, {
-                gasLimit,
-            });
-        } catch (e) {
-            throw new Error(`Error deploying the proxy: ${e}`);
-        }
+    public getInitializer(opts: InitOpts): string {
+        return getInitializer(opts);
     }
 
-    // Calculates the proxy (safe) address in advance.
+    /// Calculates how much gas it cost to deploy a safe
+    /// given the owners.
+    public calculateDeploymentGas(owners: Address[]): number {
+        return calculateDeploymentGas(owners);
+    }
+
+    /// Calculates the proxy (safe) address in advance.
     public async calculateProxyAddress(initOpts: InitOpts): Promise<Address> {
         const initializer = getInitializer(initOpts);
         return this._calculateProxyAddress(initOpts.saltNonce, initializer);
