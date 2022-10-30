@@ -10,7 +10,8 @@ import type { Provider } from "@ethersproject/providers";
 import erc20Abi from "./abis/erc20.abi.json";
 import { sanitizeAddresses } from "./utils/sanitizers";
 
-type SendTxOpts = {
+export type SendTxOpts = {
+    signer: Address;
     to: Address;
     value: BigNumber;
     data: string;
@@ -35,6 +36,7 @@ type WalletOpts = {
 };
 
 const mockTx: SendTxOpts = {
+    signer: "",
     to: "",
     value: BigNumber.from(0),
     data: "0x",
@@ -53,27 +55,19 @@ export class Safe {
 
     private signer: Wallet;
 
-    /// Creates a new Wallet class.
-    static async create(opts: WalletOpts): Promise<Safe> {
-        const { provider, signer, walletAddress } = opts;
+    constructor(public provider: Provider, signer: Wallet, walletAddress: Address) {
+        this.signer = signer.connect(provider);
+        this.safe = SafeSingleton__factory.connect(walletAddress, this.signer);
+        this.signerAddress = signer.address;
+    }
 
-        let networkName: string = (await provider.getNetwork()).name;
+    async init(): Promise<void> {
+        let networkName: string = (await this.provider.getNetwork()).name;
         networkName = networkName === "homestead" ? "mainnet" : networkName;
 
         if (!SUPPORTED_CHAINS.includes(networkName)) {
             throw new Error(`Unsupported chain: ${networkName}`);
         }
-
-        const safe = new this(provider, signer, walletAddress);
-        return safe;
-    }
-
-    /// Shouldn't be called directly.
-    /// Create the Safe class through 'create' for safety checks.
-    protected constructor(public provider: Provider, signer: Wallet, walletAddress: Address) {
-        this.signer = signer.connect(provider);
-        this.safe = SafeSingleton__factory.connect(walletAddress, signer);
-        this.signerAddress = signer.address;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -135,6 +129,7 @@ export class Safe {
         verifyAddOwnerWithThreshold(owners, newOwner, threshold, this.signerAddress);
 
         const tx = mockTx;
+        tx.signer = this.signer.address;
         tx.to = this.safe.address;
         tx.data = encodeFunctionData(SafeSingleton__factory.abi, SAFE_FUNCTIONS.addOwnerWithThreshold, [
             newOwner,
@@ -150,7 +145,7 @@ export class Safe {
 
     /// Returns the tx object to send Eth.
     /// @param _value Amount in ETH not WEI. It is transformed here.
-    public async sendEth(to: Address, _value: number, gasOpts: GasOpts): Promise<SendTxOpts> {
+    public async sendEth(to: Address, _value: number | string, gasOpts: GasOpts): Promise<SendTxOpts> {
         const value = ethers.utils.parseEther(_value.toString());
 
         const currentBalance = await this.provider.getBalance(this.safe.address);
@@ -162,6 +157,7 @@ export class Safe {
         const hash = await this._getExternalHash(to, value, "0x", BigNumber.from(gasOpts.gasLimit), gasOpts.relayer);
 
         const tx = mockTx;
+        tx.signer = this.signer.address;
         tx.to = to;
         tx.value = value;
         tx.safeTxGas = BigNumber.from(gasOpts.gasLimit);
@@ -205,6 +201,7 @@ export class Safe {
         );
 
         const tx = mockTx;
+        tx.signer = this.signer.address;
         tx.to = to;
         tx.value = BigNumber.from(0);
         tx.data = data;
@@ -213,6 +210,27 @@ export class Safe {
         tx.signatures = await sign(this.signer, hash);
 
         return tx;
+    }
+
+    /// Generic function to send a safe transaction without relayer.
+    public async sendTransaction(tx: SendTxOpts): Promise<ethers.ContractTransaction> {
+        try {
+            const txResponse = await this.safe.execTransaction(
+                tx.to,
+                tx.value,
+                tx.data,
+                tx.operation,
+                tx.safeTxGas,
+                tx.baseGas,
+                tx.gasPrice,
+                tx.gasToken,
+                tx.refundReceiver,
+                tx.signatures
+            );
+            return txResponse;
+        } catch (e) {
+            throw new Error(`Error sending transaction: ${e}`);
+        }
     }
 
     /*//////////////////////////////////////////////////////////////

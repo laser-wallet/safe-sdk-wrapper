@@ -14,7 +14,6 @@ export type InitOpts = {
     threshold?: number; // Defaults to 2 for our default setup.
     payment?: BigNumber; // Amount to refund for the creation.
     paymentReceiver?: Address; // Address of the relayer.
-    saltNonce: number | BigNumber;
 };
 // Returns the data to setup a safe.
 export function getInitializer(opts: InitOpts): string {

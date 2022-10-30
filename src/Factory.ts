@@ -37,9 +37,23 @@ export class Factory {
     }
 
     /// Calculates the proxy (safe) address in advance.
-    public async calculateProxyAddress(initOpts: InitOpts): Promise<Address> {
+    public async calculateProxyAddress(initOpts: InitOpts, saltNonce: BigNumber | number): Promise<Address> {
         const initializer = getInitializer(initOpts);
-        return this._calculateProxyAddress(initOpts.saltNonce, initializer);
+        return this._calculateProxyAddress(saltNonce, initializer);
+    }
+
+    /// Directly creates a safe.
+    public async deployProxy(initializer: string, saltNonce: number, signer: Wallet): Promise<Address> {
+        signer = signer.connect(this.provider);
+
+        const preComputedAddress = await this._calculateProxyAddress(saltNonce, initializer);
+
+        try {
+            await this.factory.connect(signer).createProxyWithNonce(SAFE_SINGLETON, initializer, saltNonce);
+            return preComputedAddress;
+        } catch (e) {
+            throw new Error(`Error deploying the safe: ${e}`);
+        }
     }
 
     private async _calculateProxyAddress(saltNonce: number | BigNumber, initializer: string): Promise<Address> {
